@@ -454,6 +454,9 @@ endif
 FIND_LEAVES_EXCLUDES := $(addprefix --prune=, $(SCAN_EXCLUDE_DIRS) .repo .git)
 
 -include vendor/extra/BoardConfigExtra.mk
+ifneq ($(LINEAGE_BUILD),)
+include vendor/lineage/config/BoardConfigLineage.mk
+endif
 
 # The build system exposes several variables for where to find the kernel
 # headers:
@@ -1287,6 +1290,14 @@ include $(BUILD_SYSTEM)/sysprop_config.mk
 # consistency with those defined in BoardConfig.mk files.
 include $(BUILD_SYSTEM)/android_soong_config_vars.mk
 
+ifneq ($(LINEAGE_BUILD),)
+ifneq ($(wildcard device/lineage/sepolicy/common/sepolicy.mk),)
+## We need to be sure the global selinux policies are included
+## last, to avoid accidental resetting by device configs
+$(eval include device/lineage/sepolicy/common/sepolicy.mk)
+endif
+endif
+
 # EMMA_INSTRUMENT is set to true when coverage is enabled. Creates a suffix to
 # differeciate the coverage version of ninja files. This will save 5 minutes of
 # build time used to regenerate ninja.
@@ -1308,6 +1319,9 @@ SOONG_EXTRA_VARIABLES :=
 -include external/ltp/android/ltp_package_list.mk
 DEFAULT_DATA_OUT_MODULES := ltp $(ltp_packages)
 .KATI_READONLY := DEFAULT_DATA_OUT_MODULES
+
+# Include any vendor specific config.mk file
+-include vendor/*/build/core/config.mk
 
 include $(BUILD_SYSTEM)/dumpvar.mk
 
