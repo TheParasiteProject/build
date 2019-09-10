@@ -740,8 +740,6 @@ function add_lunch_combo()
 function print_lunch_menu()
 {
     local uname=$(uname)
-    local choices
-    choices=$(TARGET_BUILD_APPS= TARGET_PRODUCT= TARGET_RELEASE= TARGET_BUILD_VARIANT= get_build_var COMMON_LUNCH_CHOICES 2>/dev/null)
     local ret=$?
 
     echo
@@ -763,7 +761,7 @@ function print_lunch_menu()
 
     local i=1
     local choice
-    for choice in $(echo $choices)
+    for choice in ${choices[@]}
     do
         echo "     $i. $choice"
         i=$(($i+1))
@@ -775,6 +773,19 @@ function print_lunch_menu()
 function lunch()
 {
     local answer
+
+    choices=()
+    for makefile_target in $(TARGET_BUILD_APPS= TARGET_PRODUCT= TARGET_RELEASE= TARGET_BUILD_VARIANT= get_build_var COMMON_LUNCH_CHOICES 2>/dev/null)
+    do
+        choices+=($makefile_target)
+    done
+    for other_target in ${lunch_others_targets[@]}
+    do
+        if [[ " ${choices[*]} " != *"$other_target"* ]];
+        then
+            choices+=($other_target)
+        fi
+    done
 
     if [[ $# -gt 1 ]]; then
         echo "usage: lunch [target]" >&2
@@ -800,7 +811,6 @@ function lunch()
         selection=aosp_cf_x86_64_phone-trunk_staging-eng
     elif (echo -n $answer | grep -q -e "^[0-9][0-9]*$")
     then
-        local choices=($(TARGET_BUILD_APPS= TARGET_PRODUCT= TARGET_RELEASE= TARGET_BUILD_VARIANT= get_build_var COMMON_LUNCH_CHOICES 2>/dev/null))
         if [ $answer -le ${#choices[@]} ]
         then
             # array in zsh starts from 1 instead of 0.
