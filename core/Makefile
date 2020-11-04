@@ -6654,6 +6654,8 @@ endif
 	@# OTA install helpers
 	$(hide) $(call package_files-copy-root, \
 	    $(TARGET_OUT)/install,$(zip_root)/INSTALL)
+	$(hide) $(call package_files-copy-root, \
+	    $(PRODUCT_OUT)/install,$(zip_root)/INSTALL)
 ifdef INSTALLED_KERNEL_TARGET
 ifneq (,$(filter true,$(BOARD_USES_RECOVERY_AS_BOOT)))
 	cp $(INSTALLED_KERNEL_TARGET) $(zip_root)/$(PRIVATE_RECOVERY_OUT)/
