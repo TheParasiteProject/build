@@ -37,11 +37,11 @@ define generate-common-build-props
     echo "# These properties identify this partition image." >> $(2);\
     echo "####################################" >> $(2);\
     $(if $(filter system,$(1)),\
-        echo "ro.product.$(1).brand=$(PRODUCT_SYSTEM_BRAND)" >> $(2);\
-        echo "ro.product.$(1).device=$(PRODUCT_SYSTEM_DEVICE)" >> $(2);\
-        echo "ro.product.$(1).manufacturer=$(PRODUCT_SYSTEM_MANUFACTURER)" >> $(2);\
-        echo "ro.product.$(1).model=$(PRODUCT_SYSTEM_MODEL)" >> $(2);\
-        echo "ro.product.$(1).name=$(PRODUCT_SYSTEM_NAME)" >> $(2);\
+        echo "ro.product.$(1).brand=$${PRODUCT_SYSTEM_BRAND:-$(PRODUCT_SYSTEM_BRAND)}" >> $(2);\
+        echo "ro.product.$(1).device=$${PRODUCT_SYSTEM_DEVICE:-$(PRODUCT_SYSTEM_DEVICE)}" >> $(2);\
+        echo "ro.product.$(1).manufacturer=$${PRODUCT_SYSTEM_MANUFACTURER:-$(PRODUCT_SYSTEM_MANUFACTURER)}" >> $(2);\
+        echo "ro.product.$(1).model=$${PRODUCT_SYSTEM_MODEL:-$(PRODUCT_SYSTEM_MODEL)}" >> $(2);\
+        echo "ro.product.$(1).name=$${PRODUCT_SYSTEM_NAME:-$(PRODUCT_SYSTEM_NAME)}" >> $(2);\
       ,\
         echo "ro.product.$(1).brand=$${PRODUCT_BRAND:-$(PRODUCT_BRAND)}" >> $(2);\
         echo "ro.product.$(1).device=$${TARGET_DEVICE:-$(TARGET_DEVICE)}" >> $(2);\
