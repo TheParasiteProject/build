@@ -2861,7 +2861,7 @@ endif # BOARD_CUSTOM_BOOTIMG_MK
 ifdef RECOVERY_RESOURCE_ZIP
 $(RECOVERY_RESOURCE_ZIP): $(INSTALLED_RECOVERYIMAGE_TARGET) | $(ZIPTIME)
 	$(hide) mkdir -p $(dir $@)
-	$(hide) find $(TARGET_RECOVERY_ROOT_OUT)/res -type f | sort | zip -0qrjX $@ -@
+	$(hide) find $(TARGET_RECOVERY_ROOT_OUT)/res -type f | sort | $(SOONG_ZIP) -0qrjX $@ -@
 	$(remove-timestamps-from-package)
 endif
 
@@ -7818,7 +7818,7 @@ INTERNAL_EMULATOR_PACKAGE_TARGET := $(PRODUCT_OUT)/$(name).zip
 
 $(INTERNAL_EMULATOR_PACKAGE_TARGET): $(INTERNAL_EMULATOR_PACKAGE_FILES)
 	@echo "Package: $@"
-	$(hide) zip -qjX $@ $(INTERNAL_EMULATOR_PACKAGE_FILES)
+	$(hide) $(SOONG_ZIP) -qjX $@ $(INTERNAL_EMULATOR_PACKAGE_FILES)
 
 endif
 
@@ -7960,7 +7960,7 @@ $(INTERNAL_SDK_TARGET): $(deps) | $(BUILD_NUMBER_FILE)
 	        sed -e "s/{BUILD_NUMBER}/`cat $(BUILD_NUMBER_FILE)`/" -e "s/{PRODUCT_EXPORT_RUNTIME_APIS}/$(PRODUCT_EXPORT_RUNTIME_APIS)/" build/make/core/build_properties_template.xml > $(PRIVATE_DIR)/build_properties.xml; \
 	    fi && \
 	    chmod -R ug+rwX $(PRIVATE_DIR) && \
-	    cd $(dir $@) && zip -rqX $(notdir $@) $(PRIVATE_NAME) \
+	    cd $(dir $@) && $(SOONG_ZIP) -rqX $(notdir $@) $(PRIVATE_NAME) \
 	) || ( rm -rf $(PRIVATE_DIR) $@ && exit 44 )
 
 MAIN_SDK_DIR  := $(sdk_dir)
