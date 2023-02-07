@@ -885,6 +885,8 @@ function lunch()
 
     check_product $product
 
+    source_vendorsetup
+
     local prebuilt_kernel=$(get_build_var TARGET_PREBUILT_KERNEL)
     if [ -z "$prebuilt_kernel" ]; then
       export INLINE_KERNEL_BUILDING=true
