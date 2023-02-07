@@ -550,6 +550,8 @@ function _lunch_meat()
     # Note this is the string "release", not the value of the variable.
     export TARGET_BUILD_TYPE=release
 
+    source_vendorsetup
+
     local no_kernel=$(_get_build_var_cached TARGET_NO_KERNEL)
     if [[ "$no_kernel" == "true" ]]; then
         unset INLINE_KERNEL_BUILDING
