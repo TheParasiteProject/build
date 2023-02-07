@@ -482,6 +482,8 @@ function _lunch_meat()
     # Undo any previous tapas or banchan setup
     export TARGET_BUILD_APPS=
 
+    source_vendorsetup
+
     local no_kernel=$(_get_build_var_cached TARGET_NO_KERNEL)
     local prebuilt_kernel=$(_get_build_var_cached TARGET_PREBUILT_KERNEL)
     if [[ "$no_kernel" == "true" ]] || [ -n "$prebuilt_kernel" ]; then
