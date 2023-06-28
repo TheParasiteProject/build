@@ -777,11 +777,11 @@ function lunch()
     do
         choices+=($makefile_target)
     done
-    for other_target in ${lunch_others_targets[@]}
+    for var in user userdebug eng;
     do
-        if [[ " ${choices[*]} " != *"$other_target"* ]];
+        if [[ " ${choices[*]} " != *"aosp_$device-$var"* ]];
         then
-            choices+=($other_target)
+            choices+=("aosp_$device-$var")
         fi
     done
 
@@ -862,17 +862,7 @@ function lunch()
 
     if ! check_product $product
     then
-        # if we can't find a product, try to grab it off the PixelExperience GitHub
-        T=$(gettop)
-        cd $T > /dev/null
-        vendor/aosp/build/tools/roomservice.py $product
-        cd - > /dev/null
-        check_product $product
-    else
-        T=$(gettop)
-        cd $T > /dev/null
-        vendor/aosp/build/tools/roomservice.py $product true
-        cd - > /dev/null
+        return 1
     fi
 
     TARGET_PRODUCT=$product \
