@@ -204,12 +204,12 @@ function check_product()
         echo "Couldn't locate the top of the tree.  Try setting TOP." >&2
         return
     fi
-    if (echo -n $1 | grep -q -e "^lineage_") ; then
-        LINEAGE_BUILD=$(echo -n $1 | sed -e 's/^lineage_//g')
+    if (echo -n $1 | grep -q -e "^aosp_") ; then
+        CUSTOM_BUILD=$(echo -n $1 | sed -e 's/^aosp_//g')
     else
-        LINEAGE_BUILD=
+        CUSTOM_BUILD=
     fi
-    export LINEAGE_BUILD
+    export CUSTOM_BUILD
 
         TARGET_PRODUCT=$1 \
         TARGET_RELEASE= \
