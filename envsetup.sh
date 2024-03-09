@@ -56,7 +56,7 @@ cat <<EOF
 Run "m help" for help with the build system itself.
 
 Invoke ". build/envsetup.sh" from your shell to add the following functions to your environment:
-- lunch:      lunch <product_name>-<release_type>-<build_variant>
+- lunch:      lunch <product_name>-<build_variant>
               Selects <product_name> as the product to build, and <build_variant> as the variant to
               build, and stores those selections in the environment to be read by subsequent
               invocations of 'm' etc.
@@ -848,20 +848,22 @@ function lunch()
 
     export TARGET_BUILD_APPS=
 
-    # This must be <product>-<release>-<variant>
-    local product release variant
+    # This must be <product>-<variant>
+    local product variant
     # Split string on the '-' character.
-    IFS="-" read -r product release variant <<< "$selection"
+    IFS="-" read -r product variant <<< "$selection"
 
-    if [[ -z "$product" ]] || [[ -z "$release" ]] || [[ -z "$variant" ]]
+    if [[ -z "$product" ]] || [[ -z "$variant" ]]
     then
         echo
         echo "Invalid lunch combo: $selection"
-        echo "Valid combos must be of the form <product>-<release>-<variant>"
+        echo "Valid combos must be of the form <product>-<variant>"
         return 1
     fi
 
-    check_product $product
+    # Always pick the latest release
+    release=$(grep "BUILD_ID" build/make/core/build_id.mk | tail -1 | cut -d '=' -f 2 | cut -d '.' -f 1 | tr '[:upper:]' '[:lower:]')
+    export TARGET_RELEASE=$release
 
     TARGET_PRODUCT=$product \
     TARGET_BUILD_VARIANT=$variant \
@@ -880,6 +882,8 @@ function lunch()
     export TARGET_RELEASE=$release
     # Note this is the string "release", not the value of the variable.
     export TARGET_BUILD_TYPE=release
+
+    check_product $product
 
     local prebuilt_kernel=$(get_build_var TARGET_PREBUILT_KERNEL)
     if [ -z "$prebuilt_kernel" ]; then
