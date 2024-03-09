@@ -593,7 +593,14 @@ function lunch()
     # Handle the legacy format
     local legacy=$(echo $1 | grep "-")
     if [[ $# -eq 1 && -n $legacy ]]; then
-        IFS="-" read -r product release variant <<< "$1"
+        if [[ $(echo $1 | grep -o "-" | wc -l) = 1 ]];
+        then
+            # Always pick the latest release
+            release=$(grep "BUILD_ID" build/make/core/build_id.mk | tail -1 | cut -d '=' -f 2 | cut -d '.' -f 1 | tr '[:upper:]' '[:lower:]')
+            IFS="-" read -r product variant <<< "$1"
+        else
+            IFS="-" read -r product release variant <<< "$1"
+        fi
         if [[ -z "$product" ]] || [[ -z "$release" ]] || [[ -z "$variant" ]]; then
             echo "Invalid lunch combo: $1" 1>&2
             echo "Valid combos must be of the form <product>-<release>-<variant> when using" 1>&2
