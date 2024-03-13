@@ -26,5 +26,4 @@ PRODUCT_PACKAGES += \
     PhotoTable \
     preinstalled-packages-platform-aosp-product.xml \
     ThemePicker \
-    WallpaperPicker
 
