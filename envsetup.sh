@@ -217,7 +217,7 @@ function check_product()
     if (echo -n $1 | grep -q -e "^aosp_") ; then
         CUSTOM_BUILD=$(echo -n $1 | sed -e 's/^aosp_//g')
     else
-        CUSTOM_BUILD=
+        CUSTOM_BUILD=$TARGET_PRODUCT
     fi
     export CUSTOM_BUILD
 
