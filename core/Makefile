@@ -7115,6 +7115,7 @@ PATH=$(INTERNAL_USERIMAGES_BINARY_PATHS):$(dir $(ZIP2ZIP)):$$PATH \
         --verbose \
         --path $(HOST_OUT) \
         --backup=$(backuptool) \
+        $(if $(TARGET_OTA_ADDITIONAL_OPTIONS),$(TARGET_OTA_ADDITIONAL_OPTIONS)) \
         $(if $(OEM_OTA_CONFIG), --oem_settings $(OEM_OTA_CONFIG)) \
         $(if $(BOOT_VAR_OTA_CONFIG), --boot_variable_file $(BOOT_VAR_OTA_CONFIG)) \
         $(2) \
