@@ -1346,15 +1346,15 @@ else ifndef BUILDING_VENDOR_BOOT_IMAGE # && BOARD_USES_GENERIC_KERNEL_IMAGE != t
   endif
 endif # BUILDING_VENDOR_BOOT_IMAGE == "" && BOARD_USES_GENERIC_KERNEL_IMAGE != true
 
-INTERNAL_MKBOOTIMG_VERSION_ARGS := \
-  --os_version $(PLATFORM_VERSION_LAST_STABLE) \
-  --os_patch_level $(PLATFORM_SECURITY_PATCH)
-
 ifeq ($(strip $(BOARD_KERNEL_SEPARATED_DT)),true)
   INSTALLED_DTIMAGE_TARGET := $(PRODUCT_OUT)/dt.img
   INTERNAL_BOOTIMAGE_ARGS += --dt $(INSTALLED_DTIMAGE_TARGET)
   BOOTIMAGE_EXTRA_DEPS    := $(INSTALLED_DTIMAGE_TARGET)
 endif
+
+INTERNAL_MKBOOTIMG_VERSION_ARGS := \
+  --os_version $(PLATFORM_VERSION_LAST_STABLE) \
+  --os_patch_level $(PLATFORM_SECURITY_PATCH)
 
 # Define these only if we are building boot
 ifdef BUILDING_BOOT_IMAGE
@@ -5450,6 +5450,10 @@ endif
 # -----------------------------------------------------------------
 # host tools needed to build dist and OTA packages
 
+ifeq ($(BUILD_OS),darwin)
+  build_ota_package := false
+  build_otatools_package := false
+else
   # Set build_ota_package, and allow opt-out below.
   build_ota_package := true
   ifeq ($(TARGET_SKIP_OTA_PACKAGE),true)
@@ -5487,6 +5491,7 @@ endif
   ifeq ($(TARGET_SKIP_OTATOOLS_PACKAGE),true)
     build_otatools_package := false
   endif
+endif
 
 ifeq ($(build_otatools_package),true)
 
@@ -6391,8 +6396,6 @@ ifneq (true,$(BOARD_INCLUDE_RECOVERY_RAMDISK_IN_VENDOR_BOOT))
 endif
 	@# OTA install helpers
 	$(hide) $(call package_files-copy-root, \
-	    $(TARGET_OUT)/install,$(zip_root)/INSTALL)
-	$(hide) $(call package_files-copy-root, \
 	    $(PRODUCT_OUT)/install,$(zip_root)/INSTALL)
 ifdef INSTALLED_RECOVERY_KERNEL_TARGET
 	# The python script that wraps it all up wants it to be named kernel, so do that
@@ -6636,6 +6639,12 @@ ifneq ($(PRODUCT_SYSTEM_DLKM_BASE_FS_PATH),)
 	$(hide) cp $(PRODUCT_SYSTEM_DLKM_BASE_FS_PATH) \
 	  $(zip_root)/META/$(notdir $(PRODUCT_SYSTEM_DLKM_BASE_FS_PATH))
 endif
+ifeq ($(TARGET_OTA_ALLOW_NON_AB),true)
+ifneq ($(INSTALLED_RECOVERYIMAGE_TARGET),)
+	$(hide) PATH=$(INTERNAL_USERIMAGES_BINARY_PATHS):$$PATH MKBOOTIMG=$(MKBOOTIMG) \
+	    $(MAKE_RECOVERY_PATCH) $(zip_root) $(zip_root)
+endif
+endif
 ifeq ($(AB_OTA_UPDATER),true)
 	@# When using the A/B updater, include the updater config files in the zip.
 	$(hide) cp $(TOPDIR)system/update_engine/update_engine.conf $(zip_root)/META/update_engine_config.txt
@@ -6736,12 +6745,6 @@ endif # BOARD_CUSTOMIMAGES_PARTITION_LIST
 	    echo $(part) >> $(zip_root)/META/pack_radioimages.txt;)
 	@# Run fs_config on all the system, vendor, boot ramdisk,
 	@# and recovery ramdisk files in the zip, and save the output
-ifeq ($(TARGET_OTA_ALLOW_NON_AB),true)
-ifneq ($(INSTALLED_RECOVERYIMAGE_TARGET),)
-	$(hide) PATH=$(INTERNAL_USERIMAGES_BINARY_PATHS):$$PATH MKBOOTIMG=$(MKBOOTIMG) \
-	    $(MAKE_RECOVERY_PATCH) $(zip_root) $(zip_root)
-endif
-endif
 ifdef BUILDING_SYSTEM_IMAGE
 	$(hide) $(call copy-image-and-generate-map,$(BUILT_SYSTEMIMAGE),$(zip_root)/IMAGES,system)
 	$(hide) $(call fs_config,$(zip_root)/SYSTEM,system/) > $(zip_root)/META/filesystem_config.txt
@@ -6820,7 +6823,7 @@ endif
 
 $(BUILT_TARGET_FILES_PACKAGE): $(BUILT_TARGET_FILES_DIR)
 	@echo "Packaging target files: $@"
-	$(hide) $(SOONG_ZIP) -d 1 -o $@ -C $(zip_root) -r $@.list
+	$(hide) $(SOONG_ZIP) -d -o $@ -C $(zip_root) -r $@.list
 
 .PHONY: target-files-package
 target-files-package: $(BUILT_TARGET_FILES_PACKAGE)
@@ -6893,7 +6896,6 @@ PATH=$(INTERNAL_USERIMAGES_BINARY_PATHS):$(dir $(ZIP2ZIP)):$$PATH \
         --verbose \
         --path $(HOST_OUT) \
         --backup=$(backuptool) \
-        $(if $(TARGET_OTA_ADDITIONAL_OPTIONS),$(TARGET_OTA_ADDITIONAL_OPTIONS)) \
         $(if $(OEM_OTA_CONFIG), --oem_settings $(OEM_OTA_CONFIG)) \
         $(2) \
         $(patsubst %.zip,%,$(BUILT_TARGET_FILES_PACKAGE)) $(1)
@@ -6913,7 +6915,7 @@ $(call declare-0p-target,$(INTERNAL_OTA_METADATA))
 ifeq ($(TARGET_BUILD_VARIANT),user)
     $(INTERNAL_OTA_PACKAGE_TARGET): backuptool := false
 else
-ifneq ($(CUSTOM_BUILD),)
+ifneq ($(LINEAGE_BUILD),)
     $(INTERNAL_OTA_PACKAGE_TARGET): backuptool := true
 else
     $(INTERNAL_OTA_PACKAGE_TARGET): backuptool := false
@@ -7143,7 +7145,7 @@ $(APPS_ZIP): $(FULL_SYSTEMIMAGE_DEPS)
 	    echo "No apps to zip up. Generating empty apps archive." ; \
 	    a=$$(mktemp /tmp/XXXXXXX) && touch $$a && zip $@ $$a && zip -d $@ $$a; \
 	else \
-	    $(SOONG_ZIP) -qjX $@ $$apps_to_zip; \
+	    zip -qjX $@ $$apps_to_zip; \
 	fi
 
 ifeq (true,$(EMMA_INSTRUMENT))
@@ -7277,7 +7279,7 @@ ifeq (true,$(PRODUCT_BUILD_SUPER_PARTITION))
 # BOARD_SUPER_PARTITION_SIZE must be defined to build super image.
 ifneq ($(BOARD_SUPER_PARTITION_SIZE),)
 
-ifeq ($(words $(BOARD_SUPER_PARTITION_BLOCK_DEVICES)),1)
+ifneq (true,$(PRODUCT_RETROFIT_DYNAMIC_PARTITIONS))
 
 # For real devices and for dist builds, build super image from target files to an intermediate directory.
 INTERNAL_SUPERIMAGE_DIST_TARGET := $(call intermediates-dir-for,PACKAGING,super.img)/super.img
@@ -7295,7 +7297,7 @@ endif
 .PHONY: superimage_dist
 superimage_dist: $(INTERNAL_SUPERIMAGE_DIST_TARGET)
 
-endif # $(words $(BOARD_SUPER_PARTITION_BLOCK_DEVICES)) == 1
+endif # PRODUCT_RETROFIT_DYNAMIC_PARTITIONS != "true"
 endif # BOARD_SUPER_PARTITION_SIZE != ""
 endif # PRODUCT_BUILD_SUPER_PARTITION == "true"
 
@@ -7304,7 +7306,7 @@ endif # PRODUCT_BUILD_SUPER_PARTITION == "true"
 
 ifeq (true,$(PRODUCT_BUILD_SUPER_PARTITION))
 ifneq ($(BOARD_SUPER_PARTITION_SIZE),)
-ifeq ($(words $(BOARD_SUPER_PARTITION_BLOCK_DEVICES)),1)
+ifneq (true,$(PRODUCT_RETROFIT_DYNAMIC_PARTITIONS))
 
 # Build super.img by using $(INSTALLED_*IMAGE_TARGET) to $(1)
 # $(1): built image path
@@ -7359,7 +7361,7 @@ superimage-nodeps supernod: | $(INSTALLED_SUPERIMAGE_DEPENDENCIES)
 	$(call build-superimage-target,$(INSTALLED_SUPERIMAGE_TARGET),\
 	  $(call intermediates-dir-for,PACKAGING,superimage-nodeps)/misc_info.txt)
 
-endif # $(words $(BOARD_SUPER_PARTITION_BLOCK_DEVICES)) == 1
+endif # PRODUCT_RETROFIT_DYNAMIC_PARTITIONS != "true"
 endif # BOARD_SUPER_PARTITION_SIZE != ""
 endif # PRODUCT_BUILD_SUPER_PARTITION == "true"
 
@@ -7543,7 +7545,7 @@ INTERNAL_EMULATOR_PACKAGE_TARGET := $(PRODUCT_OUT)/$(name).zip
 
 $(INTERNAL_EMULATOR_PACKAGE_TARGET): $(INTERNAL_EMULATOR_PACKAGE_FILES)
 	@echo "Package: $@"
-	$(hide) $(SOONG_ZIP) -qjX $@ $(INTERNAL_EMULATOR_PACKAGE_FILES)
+	$(hide) zip -qjX $@ $(INTERNAL_EMULATOR_PACKAGE_FILES)
 
 endif
 
@@ -7663,7 +7665,7 @@ $(INTERNAL_SDK_TARGET): $(deps)
 	    HOST_OUT_EXECUTABLES=$(HOST_OUT_EXECUTABLES) HOST_OS=$(HOST_OS) \
 	        development/build/tools/sdk_clean.sh $(PRIVATE_DIR) && \
 	    chmod -R ug+rwX $(PRIVATE_DIR) && \
-	    cd $(dir $@) && $(SOONG_ZIP) -rqX $(notdir $@) $(PRIVATE_NAME) \
+	    cd $(dir $@) && zip -rqX $(notdir $@) $(PRIVATE_NAME) \
 	) || ( rm -rf $(PRIVATE_DIR) $@ && exit 44 )
 
 MAIN_SDK_DIR  := $(sdk_dir)
@@ -7699,8 +7701,8 @@ include $(sort $(wildcard $(BUILD_SYSTEM)/tasks/*.mk))
 -include $(sort $(wildcard device/*/*/build/tasks/*.mk))
 -include $(sort $(wildcard product/*/*/build/tasks/*.mk))
 # Also add test specifc tasks
-#include $(sort $(wildcard platform_testing/build/tasks/*.mk))
-#include $(sort $(wildcard test/vts/tools/build/tasks/*.mk))
+include $(sort $(wildcard platform_testing/build/tasks/*.mk))
+include $(sort $(wildcard test/vts/tools/build/tasks/*.mk))
 endif
 
 include $(BUILD_SYSTEM)/product-graph.mk

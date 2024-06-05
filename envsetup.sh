@@ -103,7 +103,7 @@ Invoke ". build/envsetup.sh" from your shell to add the following functions to y
 
 EOF
 
-    __print_custom_functions_help
+    __print_lineage_functions_help
 
 cat <<EOF
 
@@ -116,7 +116,7 @@ EOF
     local T=$(gettop)
     local A=""
     local i
-    for i in `cat $T/build/envsetup.sh $T/vendor/aosp/build/envsetup.sh | sed -n "/^[[:blank:]]*function /s/function \([a-z_]*\).*/\1/p" | sort | uniq`; do
+    for i in `cat $T/build/envsetup.sh $T/vendor/lineage/build/envsetup.sh | sed -n "/^[[:blank:]]*function /s/function \([a-z_]*\).*/\1/p" | sort | uniq`; do
       A="$A $i"
     done
     echo $A
@@ -127,8 +127,8 @@ function build_build_var_cache()
 {
     local T=$(gettop)
     # Grep out the variable names from the script.
-    cached_vars=(`cat $T/build/envsetup.sh $T/vendor/aosp/build/envsetup.sh | tr '()' '  ' | awk '{for(i=1;i<=NF;i++) if($i~/get_build_var/) print $(i+1)}' | sort -u | tr '\n' ' '`)
-    cached_abs_vars=(`cat $T/build/envsetup.sh $T/vendor/aosp/build/envsetup.sh | tr '()' '  ' | awk '{for(i=1;i<=NF;i++) if($i~/get_abs_build_var/) print $(i+1)}' | sort -u | tr '\n' ' '`)
+    cached_vars=(`cat $T/build/envsetup.sh $T/vendor/lineage/build/envsetup.sh | tr '()' '  ' | awk '{for(i=1;i<=NF;i++) if($i~/get_build_var/) print $(i+1)}' | sort -u | tr '\n' ' '`)
+    cached_abs_vars=(`cat $T/build/envsetup.sh $T/vendor/lineage/build/envsetup.sh | tr '()' '  ' | awk '{for(i=1;i<=NF;i++) if($i~/get_abs_build_var/) print $(i+1)}' | sort -u | tr '\n' ' '`)
     # Call the build system to dump the "<val>=<value>" pairs as a shell script.
     build_dicts_script=`\builtin cd $T; build/soong/soong_ui.bash --dumpvars-mode \
                         --vars="${cached_vars[*]}" \
@@ -150,10 +150,6 @@ function build_build_var_cache()
         return $ret
     fi
     BUILD_VAR_CACHE_READY="true"
-    GENTOO_ID=/etc/gentoo-release
-    if test -f "$GENTOO_ID"; then
-        unset LEX
-    fi
 }
 
 # Delete the build var cache, so that we can still call into the build system
@@ -214,15 +210,15 @@ function check_product()
         echo "Couldn't locate the top of the tree.  Try setting TOP." >&2
         return
     fi
-    if (echo -n $1 | grep -q -e "^aosp_") ; then
-        CUSTOM_BUILD=$(echo -n $1 | sed -e 's/^aosp_//g')
+    if (echo -n $1 | grep -q -e "^lineage_") ; then
+        LINEAGE_BUILD=$(echo -n $1 | sed -e 's/^lineage_//g')
     else
-        CUSTOM_BUILD=$TARGET_PRODUCT
+        LINEAGE_BUILD=
     fi
-    export CUSTOM_BUILD
+    export LINEAGE_BUILD
 
         TARGET_PRODUCT=$1 \
-        TARGET_RELEASE= \
+        TARGET_RELEASE=$2 \
         TARGET_BUILD_VARIANT= \
         TARGET_BUILD_TYPE= \
         TARGET_BUILD_APPS= \
@@ -743,6 +739,8 @@ function add_lunch_combo()
 function print_lunch_menu()
 {
     local uname=$(uname)
+    local choices
+    choices=$(TARGET_BUILD_APPS= TARGET_PRODUCT= TARGET_RELEASE= TARGET_BUILD_VARIANT= get_build_var COMMON_LUNCH_CHOICES 2>/dev/null)
     local ret=$?
 
     echo
@@ -764,7 +762,7 @@ function print_lunch_menu()
 
     local i=1
     local choice
-    for choice in ${choices[@]}
+    for choice in $(echo $choices)
     do
         echo "     $i. $choice"
         i=$(($i+1))
@@ -777,19 +775,6 @@ function lunch()
 {
     local answer
 
-    choices=()
-    for makefile_target in $(TARGET_BUILD_APPS= TARGET_PRODUCT= TARGET_RELEASE= TARGET_BUILD_VARIANT= get_build_var COMMON_LUNCH_CHOICES 2>/dev/null)
-    do
-        choices+=($makefile_target)
-    done
-    for other_target in ${lunch_others_targets[@]}
-    do
-        if [[ " ${choices[*]} " != *"$other_target"* ]];
-        then
-            choices+=($other_target)
-        fi
-    done
-
     if [[ $# -gt 1 ]]; then
         echo "usage: lunch [target]" >&2
         return 1
@@ -799,23 +784,11 @@ function lunch()
 
     if [ "$1" ]; then
         answer=$1
-        if (echo -n $answer | grep -q -e "^[0-9][0-9]*$")
-        then
-            echo
-            echo "Invalid lunch combo"
-            return 1
-        fi
     else
         print_lunch_menu
-        echo -n "Which would you like? "
+        echo "Which would you like? [aosp_arm-trunk_staging-eng]"
         echo -n "Pick from common choices above (e.g. 13) or specify your own (e.g. aosp_barbet-trunk_staging-eng): "
         read answer
-        if ! (echo -n $answer | grep -q -e "^[0-9][0-9]*$")
-        then
-            echo
-            echo "Invalid lunch combo"
-            return 1
-        fi
         used_lunch_menu=1
     fi
 
@@ -823,12 +796,11 @@ function lunch()
 
     if [ -z "$answer" ]
     then
-        echo
-        echo "Invalid lunch combo"
-        return 1
+        selection=aosp_arm-trunk_staging-eng
     elif (echo -n $answer | grep -q -e "^[0-9][0-9]*$")
     then
-        if [ $answer -ge 1 ] && [ $answer -le ${#choices[@]} ]
+        local choices=($(TARGET_BUILD_APPS= get_build_var COMMON_LUNCH_CHOICES))
+        if [ $answer -le ${#choices[@]} ]
         then
             # array in zsh starts from 1 instead of 0.
             if [ -n "$ZSH_VERSION" ]
@@ -837,10 +809,6 @@ function lunch()
             else
                 selection=${choices[$(($answer-1))]}
             fi
-        else
-            echo
-            echo "Invalid lunch combo"
-            return 1
         fi
     else
         selection=$answer
@@ -851,14 +819,7 @@ function lunch()
     # This must be <product>-<release>-<variant>
     local product release variant
     # Split string on the '-' character.
-    if [[ $(echo $selection | grep -o "-" | wc -l) = 1 ]];
-    then
-        # Always pick the latest release
-        release=$(grep "BUILD_ID" build/make/core/build_id.mk | tail -1 | cut -d '=' -f 2 | cut -d '.' -f 1 | tr '[:upper:]' '[:lower:]')
-        IFS="-" read -r product variant <<< "$selection"
-    else
-        IFS="-" read -r product release variant <<< "$selection"
-    fi
+    IFS="-" read -r product release variant <<< "$selection"
 
     if [[ -z "$product" ]] || [[ -z "$release" ]] || [[ -z "$variant" ]]
     then
@@ -868,7 +829,20 @@ function lunch()
         return 1
     fi
 
-    check_product $product
+    if ! check_product $product $release
+    then
+        # if we can't find a product, try to grab it off the LineageOS GitHub
+        T=$(gettop)
+        cd $T > /dev/null
+        vendor/lineage/build/tools/roomservice.py $product
+        cd - > /dev/null
+        check_product $product $release
+    else
+        T=$(gettop)
+        cd $T > /dev/null
+        vendor/lineage/build/tools/roomservice.py $product true
+        cd - > /dev/null
+    fi
 
     TARGET_PRODUCT=$product \
     TARGET_BUILD_VARIANT=$variant \
@@ -880,6 +854,15 @@ function lunch()
         then
             echo "Did you mean -${product/*_/}? (dash instead of underscore)"
         fi
+        echo
+        echo "** Don't have a product spec for: '$product'"
+        echo "** Do you have the right repo manifest?"
+        product=
+    fi
+
+    if [ -z "$product" -o -z "$variant" ]
+    then
+        echo
         return 1
     fi
     export TARGET_PRODUCT=$(get_build_var TARGET_PRODUCT)
@@ -887,8 +870,6 @@ function lunch()
     export TARGET_RELEASE=$release
     # Note this is the string "release", not the value of the variable.
     export TARGET_BUILD_TYPE=release
-
-    source_vendorsetup
 
     local prebuilt_kernel=$(get_build_var TARGET_PREBUILT_KERNEL)
     if [ -z "$prebuilt_kernel" ]; then
@@ -1860,18 +1841,6 @@ function _complete_android_module_names() {
     COMPREPLY=( $(allmod | grep -E "^$word") )
 }
 
-# Make using all available CPUs
-function mka() {
-    case `uname -s` in
-        Darwin)
-            m "$@" -j `sysctl hw.ncpu|cut -d" " -f2`
-            ;;
-        *)
-            m "$@" -j `cat /proc/cpuinfo | grep "^processor" | wc -l`
-            ;;
-    esac
-}
-
 # Print colored exit condition
 function pez {
     "$@"
@@ -2147,22 +2116,6 @@ set_global_paths
 source_vendorsetup
 addcompletions
 
-# check and set ccache path on envsetup
-if [ -z ${CCACHE_EXEC} ]; then
-    ccache_path=$(which ccache)
-    if [ ! -z "$ccache_path" ]; then
-        export USE_CCACHE=1
-        export CCACHE_EXEC="$ccache_path"
-        if [ -z ${CCACHE_DIR} ]; then
-            export CCACHE_DIR=${HOME}/.ccache
-        fi
-        $ccache_path -o compression=true
-        echo -e "ccache enabled and CCACHE_EXEC has been set to : $ccache_path"
-    else
-        echo -e "ccache not found installed!"
-    fi
-fi
-
 export ANDROID_BUILD_TOP=$(gettop)
 
-. $ANDROID_BUILD_TOP/vendor/aosp/build/envsetup.sh
+. $ANDROID_BUILD_TOP/vendor/lineage/build/envsetup.sh

@@ -68,6 +68,7 @@ PRODUCT_PACKAGES += \
     SimAppDialog \
     Telecom \
     TelephonyProvider \
+    TeleService \
     UserDictionaryProvider \
     VpnDialogs \
     vr \
@@ -86,13 +87,9 @@ PRODUCT_COPY_FILES += \
     frameworks/native/data/etc/android.software.window_magnification.xml:$(TARGET_COPY_OUT_SYSTEM)/etc/permissions/android.software.window_magnification.xml \
 
 PRODUCT_VENDOR_PROPERTIES += \
-    ro.carrier?=unknown
-
-ifeq ($(CUSTOM_BUILD),)
-PRODUCT_VENDOR_PROPERTIES := \
+    ro.carrier?=unknown \
     ro.config.notification_sound?=OnTheHunt.ogg \
     ro.config.alarm_alert?=Alarm_Classic.ogg
-endif
 
 # Traceur for debug only
 PRODUCT_PACKAGES_ENG += \

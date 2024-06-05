@@ -129,6 +129,7 @@ $(KATI_obsolete_var \
   ARCH_X86_HAVE_SSSE3 \
 )
 $(KATI_obsolete_var PRODUCT_IOT)
+$(KATI_obsolete_var MD5SUM)
 $(KATI_obsolete_var BOARD_HAL_STATIC_LIBRARIES, See $(CHANGES_URL)#BOARD_HAL_STATIC_LIBRARIES)
 $(KATI_obsolete_var LOCAL_HAL_STATIC_LIBRARIES, See $(CHANGES_URL)#BOARD_HAL_STATIC_LIBRARIES)
 $(KATI_obsolete_var \
@@ -450,8 +451,9 @@ endif
 # See envsetup.mk for a description of SCAN_EXCLUDE_DIRS
 FIND_LEAVES_EXCLUDES := $(addprefix --prune=, $(SCAN_EXCLUDE_DIRS) .repo .git)
 
-ifneq ($(CUSTOM_BUILD),)
-include vendor/aosp/config/BoardConfig.mk
+-include vendor/extra/BoardConfigExtra.mk
+ifneq ($(LINEAGE_BUILD),)
+include vendor/lineage/config/BoardConfigLineage.mk
 endif
 
 # The build system exposes several variables for where to find the kernel
@@ -760,13 +762,6 @@ EXTRACT_KERNEL := build/make/tools/extract_kernel.py
 HOST_JDK_TOOLS_JAR := $(ANDROID_JAVA8_HOME)/lib/tools.jar
 
 APICHECK_COMMAND := $(JAVA) -Xmx4g -jar $(APICHECK)
-
-# It's called md5 on Mac OS and md5sum on Linux
-ifeq ($(HOST_OS),darwin)
-MD5SUM:=md5 -q
-else
-MD5SUM:=md5sum
-endif
 
 # Boolean variable determining if the allow list for compatible properties is enabled
 PRODUCT_COMPATIBLE_PROPERTY := true
@@ -1312,7 +1307,7 @@ dont_bother_goals := out product-graph
 # consistency with those defined in BoardConfig.mk files.
 include $(BUILD_SYSTEM)/android_soong_config_vars.mk
 
-ifneq ($(CUSTOM_BUILD),)
+ifneq ($(LINEAGE_BUILD),)
 ifneq ($(wildcard device/lineage/sepolicy/common/sepolicy.mk),)
 ## We need to be sure the global selinux policies are included
 ## last, to avoid accidental resetting by device configs

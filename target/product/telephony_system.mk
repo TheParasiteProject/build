@@ -23,6 +23,5 @@ PRODUCT_PACKAGES := \
     CallLogBackup \
     com.android.cellbroadcast \
     CellBroadcastLegacyApp \
-    TeleService
 
 PRODUCT_COPY_FILES := \

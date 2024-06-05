@@ -284,18 +284,6 @@ class EdifyGenerator(object):
     """Log a message to the screen (if the logs are visible)."""
     self.script.append('ui_print("%s");' % (message,))
 
-  def PrintCustomBanner(self, brand, android_version, build_id, build_date,
-                                  security_patch, device):
-    self.Print("----------------------------------------------")
-    self.Print("              %s"%(brand))
-    self.Print("----------------------------------------------")
-    self.Print(" Android version: %s"%(android_version))
-    self.Print(" Build id: %s"%(build_id))
-    self.Print(" Build date: %s"%(build_date))
-    self.Print(" Security patch: %s"%(security_patch))
-    self.Print(" Device: %s"%(device))
-    self.Print("----------------------------------------------")
-
   def TunePartition(self, partition, *options):
     fstab = self.fstab
     if fstab:
@@ -459,16 +447,6 @@ class EdifyGenerator(object):
       else:
         raise ValueError(
             "don't know how to write \"%s\" partitions" % p.fs_type)
-
-  def WriteRawImageToBootDevice(self, boot_device, fn):
-    """Write the given package file into the boot device."""
-
-    # TODO: Assert the boot device exists
-
-    device = "/dev/block/by-name/" + boot_device
-    args = {'device': device, 'fn': fn}
-    self.script.append(
-        'package_extract_file("%(fn)s", "%(device)s");' % args)
 
   def AppendExtra(self, extra):
     """Append text verbatim to the output script."""

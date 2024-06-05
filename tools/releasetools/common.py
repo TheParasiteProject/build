@@ -3678,7 +3678,7 @@ class BlockDifference(object):
     #   compression_time:   75s  | 265s               | 719s
     #   decompression_time: 15s  | 25s                | 25s
 
-    if 0:
+    if not self.src:
       brotli_cmd = ['brotli', '--quality=6',
                     '--output={}.new.dat.br'.format(self.path),
                     '{}.new.dat'.format(self.path)]
@@ -3710,15 +3710,6 @@ class BlockDifference(object):
             '  abort("E{code}: Failed to update {partition} image.");'.format(
                 device=self.device, partition=self.partition,
                 new_data_name=new_data_name, code=code))
-    script.AppendExtra(script.WordWrap(call))
-
-    call = ('delete_recursive("/data/dalvik-cache");')
-    script.AppendExtra(script.WordWrap(call))
-
-    call = ('delete_recursive("/data/cache");')
-    script.AppendExtra(script.WordWrap(call))
-
-    call = ('delete_recursive("/data/system/package_cache");')
     script.AppendExtra(script.WordWrap(call))
 
   def _HashBlocks(self, source, ranges):  # pylint: disable=no-self-use
