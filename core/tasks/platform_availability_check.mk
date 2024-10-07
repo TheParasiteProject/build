@@ -34,11 +34,6 @@ ifndef ALLOW_MISSING_DEPENDENCIES
     $(m):$(word 1,$(ALL_MODULES.$(m).PATH))\
   )
 
-  $(call maybe-print-list-and-error,$(_violators_with_path),\
-Following modules are requested to be installed. But are not available \
-for platform because they do not have "//apex_available:platform" or \
-they depend on other modules that are not available for platform)
-
 else
 
 # Don't error out immediately when ALLOW_MISSING_DEPENDENCIES is set.
@@ -53,9 +48,6 @@ it depends on other modules that are not available for platform.)
 	exit 1
   endef
 
-  $(foreach m,$(_modules_not_available_for_platform),\
-    $(foreach i,$(filter-out $(HOST_OUT)/%,$(ALL_MODULES.$(m).INSTALLED)),\
-      $(eval $(call not_available_for_platform_rule,$(i),$(m)))))
 endif
 
 endif
