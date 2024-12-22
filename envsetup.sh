@@ -506,20 +506,7 @@ function lunch()
         return 1
     fi
 
-    if ! check_product $product $release
-    then
-        # if we can't find a product, try to grab it off the LineageOS GitHub
-        T=$(gettop)
-        cd $T > /dev/null
-        vendor/lineage/build/tools/roomservice.py $product
-        cd - > /dev/null
-        check_product $product $release
-    else
-        T=$(gettop)
-        cd $T > /dev/null
-        vendor/lineage/build/tools/roomservice.py $product true
-        cd - > /dev/null
-    fi
+    check_product $product $release
 
     _lunch_meat $product $release $variant
 }
@@ -542,7 +529,6 @@ function _lunch_meat()
         fi
         echo
         echo "** Don't have a product spec for: '$product'"
-        echo "** Do you have the right repo manifest?"
         product=
     fi
 
